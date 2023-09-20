@@ -124,5 +124,9 @@ def magnitudOfVector(vector): #core proceess for the funcionality of the narmali
 def dotProd(v1, v2):
     return sum(x*y for x, y in zip(v1, v2))
 
-#todos - weird ass separation of normalizeVector
-    # for every value of the values in the Vector to normalize is needed to do the addition of every elemente to square then do the square root of that 
+def multiplyValueAndVector(value,vector):
+    vectorList = list(vector)
+    return [value*v for v in vectorList]
+
+def additionVectors(a,b):
+    return [va+vb for va,vb in zip(a,b)]

@@ -1,16 +1,25 @@
 import meth
+
+class Intercept(object):
+    def __init__(self, distance, point, normal, obj):
+        self.distance = distance
+        self.point = point
+        self.normal = normal
+        self.obj = obj
+
 class Shape(object):
-    def __init__(self, position):
+    def __init__(self, position,material):
         self.position = position
+        self.material = material
 
     def ray_intersect(self, orig, dir):
-        return False
+        return None
     
 
 class Sphere(Shape):
-    def __init__(self, position,radius):
+    def __init__(self, position,radius,material):
         self.radius = radius
-        super().__init__(position)
+        super().__init__(position,material)
 
     def ray_intersect(self, orig, dir):
         L = meth.substractionVectors(self.position, orig)
@@ -19,7 +28,7 @@ class Sphere(Shape):
         d = (lengthL ** 2 - tca ** 2) ** 0.5
 
         if d > self.radius:
-            return False
+            return None
         
         thc = (self.radius**2 - d**2) ** 0.5
 
@@ -29,6 +38,13 @@ class Sphere(Shape):
         if t0 < 0:
             t0 = t1
         if t0 < 0:
-            return False
+            return None
 
-        return True
+        P = meth.additionVectors(orig,meth.multiplyValueAndVector(t0,dir))
+        normal = meth.substractionVectors(P,self.position)
+        normal = meth.normalizeVector(normal)
+
+        return Intercept(distance= t0,
+                         point= P,
+                         normal= normal,
+                         obj= self)

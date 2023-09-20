@@ -7,6 +7,7 @@ class Raytracer(object):
         _,_, self.width, self.height = screen.get_rect()
         
         self.scene = []
+        self.lights = []
 
         self.camPosition = [0,0,0]
 
@@ -50,19 +51,22 @@ class Raytracer(object):
         y = self.height - y
         if(0<=x<self.width) and (0<=y<self.height):
             if color != None:
-                color = (color[0]*255,
-                         color[1]*255,
-                         color[2]*255)
+                color = (int(color[0]*255),
+                         int(color[1]*255),
+                         int(color[2]*255))
                 self.screen.set_at((x,y),color)
             else:
                 self.screen.set_at((x,y),self.currColor)
 
     def rtCastRay(self,orig,dir):
+        intercept = None
+        hit = None
         for obj in self.scene:
-            if obj.ray_intersect(orig,dir):
-                return True
+            intercept = obj.ray_intersect(orig,dir)
+            if intercept != None:
+                hit = intercept
         
-        return False
+        return hit
 
     def rtRender(self):
         for x in range(self.vpX,self.vpX + self.vpWidth + 1):
@@ -79,5 +83,53 @@ class Raytracer(object):
                     direction = (Px, Py, -self.nearPlane)
                     direction = meth.normalizeVector(direction)
 
-                    if self.rtCastRay(self.camPosition,direction):
-                        self.rtPoint(x,y)
+                    intercept = self.rtCastRay(self.camPosition,direction)
+
+                    # if intercept != None:
+                    #     material = intercept.obj.material
+                    #     colorP = list(material.diffuse)
+                    #     for light in self.lights:
+                    #         if light.lightType == "Ambient":
+                    #             colorP[0] *= light.intensity * light.color[0]
+                    #             colorP[1] *= light.intensity * light.color[1]
+                    #             colorP[2] *= light.intensity * light.color[2]
+                    #         elif light.lightType == "Directional":
+                    #             lightDir = meth.multiplyValueAndVector(-1,light.direction)
+                    #             lightDir = meth.normalizeVector(lightDir)
+                    #             intensity = meth.dotProd(intercept.normal, lightDir)
+                    #             intensity = max(0,min(1, intensity))
+
+                    #             colorP[0] *= intensity
+                    #             colorP[1] *= intensity
+                    #             colorP[2] *= intensity
+                    #     self.rtPoint(x,y,colorP)
+
+                    if intercept != None:
+                        material = intercept.obj.material
+                        colorP = list(material.diffuse)
+                        ambientLight = [0,0,0]
+                        directionalLight = [0,0,0]
+                        for light in self.lights:
+                            if light.lightType == "Ambient":
+                                ambientLight[0] += light.intensity * light.color[0]
+                                ambientLight[1] += light.intensity * light.color[1]
+                                ambientLight[2] += light.intensity * light.color[2]
+                            elif light.lightType == "Directional":
+                                lightDir = meth.multiplyValueAndVector(-1,light.direction)
+                                lightDir = meth.normalizeVector(lightDir)
+                                intensity = meth.dotProd(intercept.normal, lightDir)
+                                intensity = max(0,min(1, intensity))
+
+                                directionalLight[0] += intensity * light.color[0]
+                                directionalLight[1] += intensity * light.color[1]
+                                directionalLight[2] += intensity * light.color[2]
+                        
+                        colorP[0] *= ambientLight[0] + directionalLight[0]
+                        colorP[1] *= ambientLight[1] + directionalLight[1]
+                        colorP[2] *= ambientLight[2] + directionalLight[2]
+
+                        colorP[0] = min(1, colorP[0])
+                        colorP[1] = min(1, colorP[1])
+                        colorP[2] = min(1, colorP[2])
+
+                        self.rtPoint(x,y,colorP)
