@@ -109,13 +109,20 @@ def prodCrossV(a,b):
 
 def normalizeVector(vector):
     vectorList = list(vector)
-    magnitude = math.sqrt(sum(e ** 2 for e in vectorList))
+    magnitude = magnitudOfVector(vector)
     if magnitude == 0: #error if magnitude is 0
         print("Unable to normalize")
     
     normVector = [e / magnitude for e in vectorList]
     return tuple(normVector)
+
+def magnitudOfVector(vector): #core proceess for the funcionality of the narmalization of a vector
+    vectorList = list(vector)
+    magnitude = math.sqrt(sum(e ** 2 for e in vectorList))
+    return magnitude
      
 def dotProd(v1, v2):
     return sum(x*y for x, y in zip(v1, v2))
 
+#todos - weird ass separation of normalizeVector
+    # for every value of the values in the Vector to normalize is needed to do the addition of every elemente to square then do the square root of that 
