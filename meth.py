@@ -134,3 +134,9 @@ def additionVectors(a,b):
 def mIVV(a,b): 
     #multiplication off Individual Values of a Vector
     return [va*vb for va,vb in zip(a,b)]
+
+def reflectVector(normal, direction):
+    reflect = 2 * dotProd(normal,direction)
+    reflect = multiplyValueAndVector(reflect, normal)
+    reflect = substractionVectors(reflect, direction)
+    return reflect
