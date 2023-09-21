@@ -58,13 +58,17 @@ class Raytracer(object):
             else:
                 self.screen.set_at((x,y),self.currColor)
 
-    def rtCastRay(self,orig,dir):
+    def rtCastRay(self,orig,dir, sceneObj = None):
+        depth = float('inf')
         intercept = None
         hit = None
         for obj in self.scene:
-            intercept = obj.ray_intersect(orig,dir)
-            if intercept != None:
-                hit = intercept
+            if sceneObj != obj:
+                intercept = obj.ray_intersect(orig,dir)
+                if intercept != None:
+                    if intercept.distance < depth:
+                        hit = intercept
+                        depth = intercept.distance
         
         return hit
 
@@ -99,8 +103,14 @@ class Raytracer(object):
                             if light.lightType == "Ambient":
                                 ambientColor = meth.additionVectors(ambientColor,light.getLightColor())
                             else:
-                                diffuseColor = meth.additionVectors(diffuseColor,light.getDiffuseColor(intercept))
-                                specularColor = meth.additionVectors(specularColor,light.getSpecularColor(intercept,self.camPosition))
+                                shadowIntersect = None
+                                if light.lightType == "Directional":
+                                    lightDir = [i*-1 for i in light.direction]
+                                    shadowIntersect = self.rtCastRay(intercept.point,lightDir,intercept.obj)
+
+                                if shadowIntersect == None:
+                                    diffuseColor = meth.additionVectors(diffuseColor,light.getDiffuseColor(intercept))
+                                    specularColor = meth.additionVectors(specularColor,light.getSpecularColor(intercept,self.camPosition))
                         
                         lightColor = meth.additionVectors(meth.additionVectors(ambientColor,diffuseColor),specularColor)
                         
