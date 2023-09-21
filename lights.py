@@ -46,3 +46,45 @@ class DirectionalLight(Light):
 
         specColor = [(i*specIntensity) for i in self.color]
         return specColor
+    
+class PointLight(Light):
+    def __init__(self, point=(0,0,0),intensity=1, color=(1, 1, 1)):
+        self.point = point
+        super().__init__(intensity, color, "Point")
+
+    def getDiffuseColor(self, intercept):
+        dir = meth.substractionVectors(self.point,intercept.point)
+        R = meth.magnitudOfVector(dir)
+        dir = meth.normalizeWithMagnitud(dir,R)
+
+        intensity = meth.dotProd(intercept.normal, dir) * self.intensity
+        intensity *= 1 - intercept.obj.material.Ks
+
+        # Ley de cuadrados inversos
+        # If = Intensity / R^2
+        # R is the distance between intersect point and the point light
+        if R != 0:
+            intensity /= R**2
+        intensity = max(0,min(1,intensity))
+
+        return [(i*intensity) for i in self.color]
+    
+    def getSpecularColor(self, intercept, viewPos):
+        dir = meth.substractionVectors(self.point,intercept.point)
+        R = meth.magnitudOfVector(dir)
+        dir = meth.normalizeWithMagnitud(dir,R)
+
+        reflect = meth.reflectVector(intercept.normal,dir)
+        viewDir = meth.substractionVectors(viewPos,intercept.point)
+        viewDir = meth.normalizeVector(viewDir)
+
+        specIntensity = max(0,meth.dotProd(viewDir,reflect)) ** intercept.obj.material.spec
+        specIntensity *= intercept.obj.material.Ks
+        specIntensity *= self.intensity
+        if R != 0:
+            specIntensity /= R**2
+        
+        specIntensity = max(0,min(1,specIntensity))
+
+        specColor = [(i*specIntensity) for i in self.color]
+        return specColor
