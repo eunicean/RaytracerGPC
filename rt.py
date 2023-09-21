@@ -79,57 +79,32 @@ class Raytracer(object):
                     Px *= self.rightEdge
                     Py *= self.topEdge
 
-                    #creat a ray
+                    #create a ray
                     direction = (Px, Py, -self.nearPlane)
                     direction = meth.normalizeVector(direction)
 
                     intercept = self.rtCastRay(self.camPosition,direction)
 
-                    # if intercept != None:
-                    #     material = intercept.obj.material
-                    #     colorP = list(material.diffuse)
-                    #     for light in self.lights:
-                    #         if light.lightType == "Ambient":
-                    #             colorP[0] *= light.intensity * light.color[0]
-                    #             colorP[1] *= light.intensity * light.color[1]
-                    #             colorP[2] *= light.intensity * light.color[2]
-                    #         elif light.lightType == "Directional":
-                    #             lightDir = meth.multiplyValueAndVector(-1,light.direction)
-                    #             lightDir = meth.normalizeVector(lightDir)
-                    #             intensity = meth.dotProd(intercept.normal, lightDir)
-                    #             intensity = max(0,min(1, intensity))
-
-                    #             colorP[0] *= intensity
-                    #             colorP[1] *= intensity
-                    #             colorP[2] *= intensity
-                    #     self.rtPoint(x,y,colorP)
-
                     if intercept != None:
-                        material = intercept.obj.material
-                        colorP = list(material.diffuse)
-                        ambientLight = [0,0,0]
-                        directionalLight = [0,0,0]
+                        #Phong reflection model
+                        # LightColor = Ambient + Difusse + Specular
+                        # FinalColor = SurfaceColor * LightColor
+                        surfaceColor = intercept.obj.material.diffuse
+                        
+                        ambientColor = [0,0,0]
+                        diffuseColor = [0,0,0]
+                        specularColor = [0,0,0]
+                        
                         for light in self.lights:
                             if light.lightType == "Ambient":
-                                ambientLight[0] += light.intensity * light.color[0]
-                                ambientLight[1] += light.intensity * light.color[1]
-                                ambientLight[2] += light.intensity * light.color[2]
-                            elif light.lightType == "Directional":
-                                lightDir = meth.multiplyValueAndVector(-1,light.direction)
-                                lightDir = meth.normalizeVector(lightDir)
-                                intensity = meth.dotProd(intercept.normal, lightDir)
-                                intensity = max(0,min(1, intensity))
-
-                                directionalLight[0] += intensity * light.color[0]
-                                directionalLight[1] += intensity * light.color[1]
-                                directionalLight[2] += intensity * light.color[2]
+                                ambientColor = meth.additionVectors(ambientColor,light.getLightColor())
+                            else:
+                                diffuseColor = meth.additionVectors(diffuseColor,light.getDiffuseColor(intercept))
+                                specularColor = meth.additionVectors(specularColor,light.getSpecularColor(intercept,self.camPosition))
                         
-                        colorP[0] *= ambientLight[0] + directionalLight[0]
-                        colorP[1] *= ambientLight[1] + directionalLight[1]
-                        colorP[2] *= ambientLight[2] + directionalLight[2]
+                        lightColor = meth.additionVectors(meth.additionVectors(ambientColor,diffuseColor),specularColor)
+                        
+                        surfaceColor = list(surfaceColor)
+                        finalColor = [max(0, min(1, value)) for value in meth.mIVV(surfaceColor,lightColor)]
 
-                        colorP[0] = min(1, colorP[0])
-                        colorP[1] = min(1, colorP[1])
-                        colorP[2] = min(1, colorP[2])
-
-                        self.rtPoint(x,y,colorP)
+                        self.rtPoint(x,y,finalColor)
