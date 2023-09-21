@@ -120,6 +120,14 @@ def magnitudOfVector(vector): #core proceess for the funcionality of the narmali
     vectorList = list(vector)
     magnitude = math.sqrt(sum(e ** 2 for e in vectorList))
     return magnitude
+
+def normalizeWithMagnitud(vector, magnitude):
+    vList = list(vector)
+    if magnitude == 0: #error if magnitude is 0
+        print("Unable to normalize")
+    
+    normVector = [e / magnitude for e in vList]
+    return tuple(normVector)
      
 def dotProd(v1, v2):
     return sum(x*y for x, y in zip(v1, v2))
