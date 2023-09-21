@@ -103,10 +103,14 @@ class Raytracer(object):
                             if light.lightType == "Ambient":
                                 ambientColor = meth.additionVectors(ambientColor,light.getLightColor())
                             else:
-                                shadowIntersect = None
+                                lightDir = None
                                 if light.lightType == "Directional":
                                     lightDir = [i*-1 for i in light.direction]
-                                    shadowIntersect = self.rtCastRay(intercept.point,lightDir,intercept.obj)
+                                elif light.lightType == "Point":
+                                    lightDir = meth.substractionVectors(light.point, intercept.point)
+                                    lightDir = meth.normalizeVector(lightDir)
+                                    
+                                shadowIntersect = self.rtCastRay(intercept.point,lightDir,intercept.obj)
 
                                 if shadowIntersect == None:
                                     diffuseColor = meth.additionVectors(diffuseColor,light.getDiffuseColor(intercept))
