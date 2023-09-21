@@ -130,3 +130,7 @@ def multiplyValueAndVector(value,vector):
 
 def additionVectors(a,b):
     return [va+vb for va,vb in zip(a,b)]
+
+def mIVV(a,b): 
+    #multiplication off Individual Values of a Vector
+    return [va*vb for va,vb in zip(a,b)]
