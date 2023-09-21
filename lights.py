@@ -30,9 +30,8 @@ class DirectionalLight(Light):
         dir = [i*-1 for i in self.direction]
         intensity = meth.dotProd(intercept.normal, dir) * self.intensity
         intensity = max(0,min(1,intensity))
-
-        diffuseColor = [(i*intensity) for i in self.color]
-        return diffuseColor
+        intensity *= 1 - intercept.obj.material.Ks
+        return [(i*intensity) for i in self.color]
     
     def getSpecularColor(self, intercept, viewPos):
         dir = [i*-1 for i in self.direction]
@@ -42,6 +41,7 @@ class DirectionalLight(Light):
         viewDir = meth.normalizeVector(viewDir)
 
         specIntensity = max(0,meth.dotProd(viewDir,reflect)) ** intercept.obj.material.spec
+        specIntensity *= intercept.obj.material.Ks
         specIntensity *= self.intensity
 
         specColor = [(i*specIntensity) for i in self.color]
