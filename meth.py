@@ -149,3 +149,32 @@ def reflectVector(normal, direction):
     reflect = multiplyValueAndVector(reflect, normal)
     reflect = substractionVectors(reflect, direction)
     return reflect
+
+def totalInternalReflection(incident, normal, n1, n2): 
+    #returns true or false if there is total internal reflection
+    #incident is a vector
+    #normal is a vector
+    #n1 is mayor IOR
+    #n2 is minor IOR
+    if n1 < n2:
+        n1,n2 = n2,n1 #n1 has to always to be the mayor
+
+    Ai = math.acos(dotProd(incident,normal)) #angulo incidente
+    Ac = math.asin(n2/n1) #angulo critico
+
+    return Ai>=Ac # true if there is total internal reflection
+
+def refractVector(incident, normal, n1,n2):
+    #Snell's law
+    refract = multiplyValueAndVector(dotProd(incident,normal),normal)
+    refract = substractionVectors(incident,refract)
+    refract = n1 * refract
+    refract = refract / n2
+    refract = normalizeVector(refract)
+    return refract
+
+def fresnel(n1,n2):
+    #frenell's ecuation
+    Kr = ((n1**0.5 - n2**0.5)**2)/((n1**0.5 + n2**0.5)**2)
+    Kt = 1 - Kr
+    return Kr, Kt
