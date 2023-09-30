@@ -1,5 +1,11 @@
 import math
 import meth
+import random
+import pygame
+from materials import *
+from lights import *
+
+MAX_RECURSION_DEPTH = 3
 
 class Raytracer(object):
     def __init__(self, screen):
@@ -17,6 +23,8 @@ class Raytracer(object):
         self.rtColor(1,1,1)
         self.rtClearColor(0,0,0)
         self.rtClear()
+
+        self.envMap = None
 
     def rtViewPort(self, posX,posY,width,height):
         self.vpX = posX
@@ -58,10 +66,14 @@ class Raytracer(object):
             else:
                 self.screen.set_at((x,y),self.currColor)
 
-    def rtCastRay(self,orig,dir, sceneObj = None):
+    def rtCastRay(self,orig,dir, sceneObj = None, recursion = 0):
+        if recursion >= MAX_RECURSION_DEPTH:
+            return None
+        
         depth = float('inf')
         intercept = None
         hit = None
+
         for obj in self.scene:
             if sceneObj != obj:
                 intercept = obj.ray_intersect(orig,dir)
@@ -71,11 +83,92 @@ class Raytracer(object):
                         depth = intercept.distance
         
         return hit
+    
+    def rtRayColor(self, intercept, rayDirection,recursion=0):
+        if intercept == None:
+            if self.envMap:
+                x = (math.atan2(rayDirection[2],rayDirection[0])/(2*math.pi) + 0.5) * self.envMap.get_width()
+                y = math.acos(rayDirection[1])/math.pi * self.envMap.get_height()
+                envColor = self.envMap.get_at((int(x),int(y)))
+
+                return [i/255 for i in envColor]
+
+            else:
+                return None
+        
+        #Phong reflection model
+        # LightColor = Ambient + Difusse + Specular
+        # FinalColor = SurfaceColor * LightColor
+
+        material = intercept.obj.material
+
+        surfaceColor = intercept.obj.material.diffuse
+
+        if material.texture and intercept.texcoords:
+            tX = intercept.texcoords[0] * material.texture.get_width()
+            tY = intercept.texcoords[1] * material.texture.get_height()
+            texColor = material.texture.get_at((int(tX),int(tY)))
+            texColor = [i/255 for i in texColor]
+            surfaceColor = [surfaceColor[i] * texColor[i] for i in range(3)]
+
+        reflectColor = [0,0,0]
+        ambientColor = [0,0,0]
+        diffuseColor = [0,0,0]
+        specularColor = [0,0,0]
+        finalColor = [0,0,0]
+
+        if material.matType == OPAQUE:
+            for light in self.lights:
+                if light.lightType == "Ambient":
+                    ambientColor = meth.additionVectors(ambientColor,light.getLightColor())
+                else:
+                    lightDir = None
+                    if light.lightType == "Directional":
+                        lightDir = [i*-1 for i in light.direction]
+                    elif light.lightType == "Point":
+                        lightDir = meth.substractionVectors(light.point, intercept.point)
+                        lightDir = meth.normalizeVector(lightDir)
+                        
+                    shadowIntersect = self.rtCastRay(intercept.point,lightDir,intercept.obj)
+
+                    if shadowIntersect == None:
+                        diffuseColor = meth.additionVectors(diffuseColor,light.getDiffuseColor(intercept))
+                        specularColor = meth.additionVectors(specularColor,light.getSpecularColor(intercept,self.camPosition))
+
+        elif material.matType == REFLECTIVE:
+            direction = [i*-1 for i in rayDirection]
+            reflect = meth.reflectVector(intercept.normal, direction)
+            reflectIntercept = self.rtCastRay(intercept.point, reflect, intercept.obj, recursion+1)
+            reflectColor = self.rtRayColor(reflectIntercept, reflect, recursion+1)
+            
+            for light in self.lights:
+                if light.lightType != "Ambient":
+                    lightDir = None
+                    if light.lightType == "Directional":
+                        lightDir = [i*-1 for i in light.direction]
+                    elif light.lightType == "Point":
+                        lightDir = meth.substractionVectors(light.point, intercept.point)
+                        lightDir = meth.normalizeVector(lightDir)
+
+                    shadowIntersect = self.rtCastRay(intercept.point,lightDir,intercept.obj)
+                    
+                    if shadowIntersect == None:
+                        specularColor = meth.additionVectors(specularColor,light.getSpecularColor(intercept,self.camPosition))
+
+        lightColor = meth.additionVectors(meth.additionVectors(meth.additionVectors(ambientColor,diffuseColor),specularColor),reflectColor)
+        surfaceColor = list(surfaceColor)
+        finalColor = [min(1, value) for value in meth.mIVV(surfaceColor,lightColor)]
+        return finalColor
+
 
     def rtRender(self):
-        for x in range(self.vpX,self.vpX + self.vpWidth + 1):
-            for y in range(self.vpY,self.vpY + self.vpHeight + 1):
-                if 0<=x<self.width and 0<=y<self.height:
+        indices = [(i,j)for i in range(self.vpWidth) for j in range(self.vpHeight)]
+        random.shuffle(indices)
+
+        for i,j in indices:
+            x = i + self.vpX
+            y = j + self.vpY
+            if 0<=x<self.width and 0<=y<self.height:
                     #Pass window coords to NDC coords (normalized coords) (-1 to 1)
                     Px =((x + 0.5 - self.vpX) / self.vpWidth)*2 - 1
                     Py =((y + 0.5 - self.vpY) / self.vpHeight)*2 - 1
@@ -88,37 +181,9 @@ class Raytracer(object):
                     direction = meth.normalizeVector(direction)
 
                     intercept = self.rtCastRay(self.camPosition,direction)
+                    rayColor = self.rtRayColor(intercept, direction)
 
-                    if intercept != None:
-                        #Phong reflection model
-                        # LightColor = Ambient + Difusse + Specular
-                        # FinalColor = SurfaceColor * LightColor
-                        surfaceColor = intercept.obj.material.diffuse
-                        
-                        ambientColor = [0,0,0]
-                        diffuseColor = [0,0,0]
-                        specularColor = [0,0,0]
-                        
-                        for light in self.lights:
-                            if light.lightType == "Ambient":
-                                ambientColor = meth.additionVectors(ambientColor,light.getLightColor())
-                            else:
-                                lightDir = None
-                                if light.lightType == "Directional":
-                                    lightDir = [i*-1 for i in light.direction]
-                                elif light.lightType == "Point":
-                                    lightDir = meth.substractionVectors(light.point, intercept.point)
-                                    lightDir = meth.normalizeVector(lightDir)
-                                    
-                                shadowIntersect = self.rtCastRay(intercept.point,lightDir,intercept.obj)
+                    if rayColor !=None:
+                        self.rtPoint(x,y,rayColor)
+                        pygame.display.flip()
 
-                                if shadowIntersect == None:
-                                    diffuseColor = meth.additionVectors(diffuseColor,light.getDiffuseColor(intercept))
-                                    specularColor = meth.additionVectors(specularColor,light.getSpecularColor(intercept,self.camPosition))
-                        
-                        lightColor = meth.additionVectors(meth.additionVectors(ambientColor,diffuseColor),specularColor)
-                        
-                        surfaceColor = list(surfaceColor)
-                        finalColor = [max(0, min(1, value)) for value in meth.mIVV(surfaceColor,lightColor)]
-
-                        self.rtPoint(x,y,finalColor)

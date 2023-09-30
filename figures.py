@@ -1,10 +1,12 @@
 import meth
+import math
 
 class Intercept(object):
-    def __init__(self, distance, point, normal, obj):
+    def __init__(self, distance, point, normal, texcoords, obj):
         self.distance = distance
         self.point = point
         self.normal = normal
+        self.texcoords = texcoords
         self.obj = obj
 
 class Shape(object):
@@ -44,7 +46,11 @@ class Sphere(Shape):
         normal = meth.substractionVectors(P,self.position)
         normal = meth.normalizeVector(normal)
 
+        u = (math.atan2(normal[2],normal[0])/(2 * math.pi))+0.5
+        v = math.acos(normal[1])/math.pi
+
         return Intercept(distance= t0,
                          point= P,
                          normal= normal,
+                         texcoords= (u,v),
                          obj= self)
