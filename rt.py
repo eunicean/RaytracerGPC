@@ -91,7 +91,7 @@ class Raytracer(object):
                 y = math.acos(rayDirection[1])/math.pi * self.envMap.get_height()
                 envColor = self.envMap.get_at((int(x),int(y)))
 
-                return [i/255 for i in envColor]
+                return [envColor[i]/255 for i in range(3)]
 
             else:
                 return None
@@ -112,6 +112,7 @@ class Raytracer(object):
             surfaceColor = [surfaceColor[i] * texColor[i] for i in range(3)]
 
         reflectColor = [0,0,0]
+        refractColor = [0,0,0]
         ambientColor = [0,0,0]
         diffuseColor = [0,0,0]
         specularColor = [0,0,0]
@@ -154,8 +155,30 @@ class Raytracer(object):
                     
                     if shadowIntersect == None:
                         specularColor = meth.additionVectors(specularColor,light.getSpecularColor(intercept,self.camPosition))
+        elif material.matType == TRANSPARENT:
+            outside = meth.dotProd(rayDirection, intercept.normal) < 0
+            bias = meth.multiplyValueAndVector(0.001,intercept.normal)  #vector
+            
+            direction = [i*-1 for i in rayDirection]
+            reflect = meth.reflectVector(intercept.normal, direction)
+            reflectOrig = meth.additionVectors(intercept.point, bias) if outside else meth.substractionVectors(intercept.point, bias)
+            reflectIntercept = self.rtCastRay(reflectOrig,reflect,None, recursion + 1)
+            reflectColor = self.rtRayColor(reflectIntercept, reflect, recursion+1)
 
-        lightColor = meth.additionVectors(meth.additionVectors(meth.additionVectors(ambientColor,diffuseColor),specularColor),reflectColor)
+            n1 = 1.0 if outside else material.ior
+            n2 = material.ior if outside else 1.0
+
+            if not meth.totalInternalReflection(rayDirection, intercept.normal, n1,n2):
+                refract = meth.refractVector(rayDirection, intercept.normal, n1,n2)
+                refractOrig = meth.substractionVectors(intercept.point, bias) if outside else meth.additionVectors(intercept.point, bias)
+                refractIntercept = self.rtCastRay(refractOrig,refract,None, recursion + 1)
+                refractColor = self.rtRayColor(refractIntercept, refract, recursion+1)
+
+            Kr, Kt = meth.fresnel(n1,n2)
+            reflectColor = meth.multiplyValueAndVector(Kr,reflectColor)
+            refractColor = meth.multiplyValueAndVector(Kt,refractColor)
+
+        lightColor = meth.additionVectors(meth.additionVectors(meth.additionVectors(meth.additionVectors(ambientColor,diffuseColor),specularColor),reflectColor),refractColor)
         surfaceColor = list(surfaceColor)
         finalColor = [min(1, value) for value in meth.mIVV(surfaceColor,lightColor)]
         return finalColor

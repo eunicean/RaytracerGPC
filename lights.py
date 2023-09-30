@@ -1,5 +1,5 @@
 import meth
-#function reflectVector is in library meth
+#function reflectVector,refractVector and totalInternalReflection is in library meth
 class Light(object):
     def __init__(self, intensity = 1, color = (1,1,1), lightType = "None"):
         self.intensity = intensity
