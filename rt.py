@@ -155,6 +155,7 @@ class Raytracer(object):
                     
                     if shadowIntersect == None:
                         specularColor = meth.additionVectors(specularColor,light.getSpecularColor(intercept,self.camPosition))
+        
         elif material.matType == TRANSPARENT:
             outside = meth.dotProd(rayDirection, intercept.normal) < 0
             bias = meth.multiplyValueAndVector(0.001,intercept.normal)  #vector
@@ -164,6 +165,20 @@ class Raytracer(object):
             reflectOrig = meth.additionVectors(intercept.point, bias) if outside else meth.substractionVectors(intercept.point, bias)
             reflectIntercept = self.rtCastRay(reflectOrig,reflect,None, recursion + 1)
             reflectColor = self.rtRayColor(reflectIntercept, reflect, recursion+1)
+
+            for light in self.lights:
+                if light.lightType != "Ambient":
+                    lightDir = None
+                    if light.lightType == "Directional":
+                        lightDir = [i*-1 for i in light.direction]
+                    elif light.lightType == "Point":
+                        lightDir = meth.substractionVectors(light.point, intercept.point)
+                        lightDir = meth.normalizeVector(lightDir)
+
+                    shadowIntersect = self.rtCastRay(intercept.point,lightDir,intercept.obj)
+                    
+                    if shadowIntersect == None:
+                        specularColor = meth.additionVectors(specularColor,light.getSpecularColor(intercept,self.camPosition))
 
             if not meth.totalInternalReflection(intercept.normal, rayDirection,1.0,material.ior):
                 refract = meth.refractVector(intercept.normal,rayDirection,1.0,material.ior)
