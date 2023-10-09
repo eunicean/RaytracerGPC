@@ -165,18 +165,15 @@ class Raytracer(object):
             reflectIntercept = self.rtCastRay(reflectOrig,reflect,None, recursion + 1)
             reflectColor = self.rtRayColor(reflectIntercept, reflect, recursion+1)
 
-            n1 = 1.0 if outside else material.ior
-            n2 = material.ior if outside else 1.0
-
-            if not meth.totalInternalReflection(rayDirection, intercept.normal, n1,n2):
-                refract = meth.refractVector(rayDirection, intercept.normal, n1,n2)
+            if not meth.totalInternalReflection(intercept.normal, rayDirection,1.0,material.ior):
+                refract = meth.refractVector(intercept.normal,rayDirection,1.0,material.ior)
                 refractOrig = meth.substractionVectors(intercept.point, bias) if outside else meth.additionVectors(intercept.point, bias)
                 refractIntercept = self.rtCastRay(refractOrig,refract,None, recursion + 1)
                 refractColor = self.rtRayColor(refractIntercept, refract, recursion+1)
 
-            Kr, Kt = meth.fresnel(n1,n2)
-            reflectColor = meth.multiplyValueAndVector(Kr,reflectColor)
-            refractColor = meth.multiplyValueAndVector(Kt,refractColor)
+                Kr, Kt = meth.fresnel(intercept.normal,rayDirection, 1.0,material.ior)
+                reflectColor = meth.multiplyValueAndVector(Kr,reflectColor)
+                refractColor = meth.multiplyValueAndVector(Kt,refractColor)
 
         lightColor = meth.additionVectors(meth.additionVectors(meth.additionVectors(meth.additionVectors(ambientColor,diffuseColor),specularColor),reflectColor),refractColor)
         surfaceColor = list(surfaceColor)

@@ -156,25 +156,59 @@ def totalInternalReflection(incident, normal, n1, n2):
     #normal is a vector
     #n1 is mayor IOR
     #n2 is minor IOR
+
+    c1 = dotProd(normal, incident)
+    if c1 < 0:
+        c1 = -1 * c1
+    else:
+        n1,n2 = n2,n1
+
     if n1 < n2:
-        n1,n2 = n2,n1 #n1 has to always to be the mayor
+        return False
 
-    Ai = math.acos(dotProd(incident,normal)) #angulo incidente
-    Ac = math.asin(n2/n1) #angulo critico
+    theta1 = math.acos(c1)  #angulo incidente
+    thetaC = math.asin(n2/n1) #angulo critico
 
-    return Ai>=Ac # true if there is total internal reflection
+    return theta1>=thetaC # true if there is total internal reflection
 
-def refractVector(incident, normal, n1,n2):
+def refractVector(normal, incident, n1,n2):
     #Snell's law
-    refract = multiplyValueAndVector(dotProd(incident,normal),normal)
-    refract = substractionVectors(incident,refract)
-    refract = n1 * refract
-    refract = refract / n2
-    refract = normalizeVector(refract)
-    return refract
+    c1 = dotProd(normal, incident)
+    if c1 < 0:
+        c1 = -1 * c1
+    else:
+        normal = [i*-1 for i in normal]
+        n1,n2 = n2,n1
+    
+    n = n1/n2
+    # normal * sqrt(1-n^2 * sin^2(ang))
+    c2 = (1-n**2 * (1 - c1**2))**0.5
 
-def fresnel(n1,n2):
+    # n*incident
+    Ta = multiplyValueAndVector(n, incident)
+    # (n*c1-c2)*normal
+    v = n*c1-c2
+    Tb = multiplyValueAndVector(v,normal)
+    # n*incident + (n*c1-c2)*normal
+    T = additionVectors(Ta,Tb)
+    T = normalizeVector(T)
+    return T
+
+def fresnel(normal, incident,n1,n2):
     #frenell's ecuation
-    Kr = ((n1**0.5 - n2**0.5)**2)/((n1**0.5 + n2**0.5)**2)
-    Kt = 1 - Kr
+    c1 = dotProd(normal, incident)
+    if c1 < 0:
+        c1 = -1 * c1
+    else:
+        normal = [i*-1 for i in normal]
+        n1,n2 = n2,n1
+
+    s2 = (n1*(1-c1**2)**0.5)/n2  #seno of the exit angle
+    c2 = (1-s2**2)**0.5
+
+    F1 = (((n2*c1) - (n1*c2))/((n2*c1) + (n1*c2)))**2
+    F2 = (((n1*c2) - (n2*c1))/((n1*c2) + (n2*c1)))**2
+
+    Kr = (F1+F2)/2
+    Kt = 1- Kr
     return Kr, Kt

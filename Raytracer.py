@@ -12,7 +12,7 @@ height = 256
 
 pygame.init()
 
-screen = pygame.display.set_mode((width,height),pygame.DOUBLEBUF | pygame.HWACCEL | pygame.HWSURFACE) #to show images in real time
+screen = pygame.display.set_mode((width,height),pygame.DOUBLEBUF | pygame.HWACCEL | pygame.HWSURFACE | pygame.SCALED) #to show images in real time
 screen.set_alpha(None)
 
 raytracer = Raytracer(screen)
@@ -34,6 +34,7 @@ blueMirror = Material(diffuse=(0.4,0.4,0.9),spec=32, Ks=0.15,matType=REFLECTIVE)
 jupiter = Material(texture=jupiterTexture)
 marble = Material(texture=marbleTexture, spec=64, Ks=0.1, matType=REFLECTIVE)
 glass = Material(diffuse=(0.9,0.9,0.9),spec=64, Ks=0.2, ior=1.5, matType=TRANSPARENT)
+diamond = Material(diffuse=(0.9,0.9,0.9),spec=64, Ks=0.2, ior=2.417, matType=TRANSPARENT)
 
 # raytracer.scene.append(Sphere(position=(0,0,-7), radius=2, material = mirror))
 # raytracer.scene.append(Sphere(position=(0.5,-1,-5), radius=0.3, material = water))
@@ -42,7 +43,8 @@ glass = Material(diffuse=(0.9,0.9,0.9),spec=64, Ks=0.2, ior=1.5, matType=TRANSPA
 # raytracer.scene.append(Sphere(position=(2,0,-7), radius=2, material = jupiter))
 # raytracer.scene.append(Sphere(position=(0,-1,-5), radius=0.5, material = mirror))
 
-raytracer.scene.append(Sphere(position= (0,0,-5), radius= 2, material= glass))
+raytracer.scene.append(Sphere(position= (-1,0,-5), radius= 1, material= diamond))
+raytracer.scene.append(Sphere(position= (1,0,-5), radius= 1, material= brick))
 
 raytracer.lights.append(AmbientLight(intensity=0.1))
 raytracer.lights.append(DirectionalLight(direction=(-1,-1,-1), intensity=0.9))
