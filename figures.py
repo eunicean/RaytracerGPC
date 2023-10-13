@@ -104,3 +104,73 @@ class Disk(Plane):
                          normal= self.normal,
                          texcoords= None,
                          obj= self)
+    
+class AABB(Shape):
+    def __init__(self, position, material, size):
+        super().__init__(position, material)
+
+        self.planes = [ ]
+        self.size = size
+
+        #sides
+        leftPlane =   Plane(meth.additionVectors(self.position,((-size[0])/2,0,0)),normal=(-1,0,0),material=material)
+        rightPlane =  Plane(meth.additionVectors(self.position,(( size[0])/2,0,0)),normal=(1,0,0), material=material)
+        bottomPlane = Plane(meth.additionVectors(self.position,(0,(-size[1])/2,0)),normal=(0,-1,0),material=material)
+        topPlane =    Plane(meth.additionVectors(self.position,(0,( size[1])/2,0)),normal=(0,1,0), material=material)
+        backPlane =   Plane(meth.additionVectors(self.position,(0,0,(-size[2])/2)),normal=(0,0,-1),material=material)
+        frontPlane =  Plane(meth.additionVectors(self.position,(0,0,( size[2])/2)),normal=(0,0,1), material=material)
+
+        self.planes.append(leftPlane)
+        self.planes.append(rightPlane)
+        self.planes.append(bottomPlane)
+        self.planes.append(topPlane)
+        self.planes.append(backPlane)
+        self.planes.append(frontPlane)
+
+        #Bounds
+        self.boundsMin = [0,0,0]
+        self.boundsMax = [0,0,0]
+        bias = 0.001
+        for i in range(3):
+            self.boundsMin[i] = self.position[i] - (bias + size[i]/2)
+            self.boundsMax[i] = self.position[i] + (bias + size[i]/2)
+
+    def ray_intersect(self, orig, dir):
+        intersect = None
+        t = float('inf')
+        u = 0
+        v = 0
+        bias = 0.001
+
+        for plane in self.planes:
+            planeIntersect = plane.ray_intersect(orig, dir)
+            if planeIntersect is not None:
+                planePoint = planeIntersect.point
+                if self.boundsMin[0] <= planePoint[0] <= self.boundsMax[0]:
+                    if self.boundsMin[1] <= planePoint[1] <= self.boundsMax[1]:
+                        if self.boundsMin[2] <= planePoint[2] <= self.boundsMax[2]:
+                            if planeIntersect.distance < t:
+                                t = planeIntersect.distance
+                                intersect = planeIntersect
+
+                                #genereta u and v
+                                if abs(plane.normal[0]) > 0:#this is a left or right plane
+                                    #whe are in X, we use the Y a Z to create the uvs
+                                    u = (planePoint[1] - self.boundsMin[1])/(self.size[1] + bias*2)
+                                    v = (planePoint[2] - self.boundsMin[2])/(self.size[2] + bias*2)
+                                elif abs(plane.normal[1]) > 0:
+                                    #whe are in Y, we use the X a Z to create the uvs
+                                    u = (planePoint[0] - self.boundsMin[0])/(self.size[0] + bias*2)
+                                    v = (planePoint[2] - self.boundsMin[2])/(self.size[2] + bias*2)
+                                elif abs(plane.normal[2]) > 0:
+                                    #whe are in Z, we use the Y a X to create the uvs
+                                    u = (planePoint[0] - self.boundsMin[0])/(self.size[0] + bias*2)
+                                    v = (planePoint[1] - self.boundsMin[1])/(self.size[1] + bias*2)
+
+        if intersect is None: return None
+        
+        return Intercept(distance= t,
+                         point= intersect.point,
+                         normal= intersect.normal,
+                         texcoords= (u,v),
+                         obj= self)
