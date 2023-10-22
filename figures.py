@@ -88,7 +88,7 @@ class Disk(Plane):
         super().__init__(position, material, normal)
 
     def ray_intersect(self, orig, dir):
-        planeIntersect = super().ray_intersect(orig,dir) #if does contact to the plane which it belongs
+        planeIntersect = super().ray_intersect(orig,dir) #if it does contact to the plane which it belongs
 
         if planeIntersect is None:
             return None
@@ -175,8 +175,6 @@ class AABB(Shape):
                          texcoords= (u,v),
                          obj= self)
     
-# Help of chatGPT:
-# https://chat.openai.com/share/806e6b97-c8c8-49a2-874f-cc1aa6c2b7a1
 class Triangle(Shape):
     def __init__(self,material, verts): #In this, verts[0] = (x,y,z) will determine the position
         self.verts = verts #every value in verts is an (x,y,z)
@@ -187,7 +185,7 @@ class Triangle(Shape):
         edge2 = meth.substractionVectors(self.verts[2],self.verts[0])
         normal = meth.normalizeVector(meth.prodCrossV(edge1,edge2))
 
-        denom = meth.dotProd(normal,dir) #this is h and a combined
+        denom = meth.dotProd(normal,dir)
         if abs(denom) <= 0.001:
             return None
 
@@ -205,12 +203,11 @@ class Triangle(Shape):
         if v < 0.0 or u + v > 1.0:
             return None
 
-        # At this point, we have a valid intersection
+        # Here i have a valid intersection
         t = scalingFactor * meth.dotProd(edge2, orientation)
         if t <= 0:
             return None
 
-        # Compute the intersection point and return the result
         P = meth.additionVectors(orig, meth.multiplyValueAndVector(t, dir))
 
         return Intercept(distance=t,
@@ -218,3 +215,72 @@ class Triangle(Shape):
                          normal=normal,
                          texcoords=None,
                          obj=self)
+
+# class Piramid(Shape):
+#     def __init__(self, base_center, base_size, height, material):
+#         self.base_center = base_center
+#         self.base_size = base_size
+#         self.height = height
+#         apex = (base_center[0], base_center[1], base_center[2] + height)
+
+#         vertices = [
+#             (base_center[0] - base_size / 2, base_center[1] - base_size / 2, base_center[2]),
+#             (base_center[0] + base_size / 2, base_center[1] - base_size / 2, base_center[2]),
+#             (base_center[0] + base_size / 2, base_center[1] + base_size / 2, base_center[2]),
+#             (base_center[0] - base_size / 2, base_center[1] + base_size / 2, base_center[2]),
+#             apex
+#         ]
+#         self.vertices = vertices
+#         super().__init__(vertices[0], material)
+
+#     def ray_intersect(self, orig, dir):
+#         return super().ray_intersect(orig, dir)
+        
+class Cylinder(Shape):
+    def __init__(self, position, radius, height, material):
+        self.radius = radius
+        self.height = height
+        super().__init__(position, material)
+
+    def ray_intersect(self, orig, dir):
+        local_orig = meth.substractionVectors(orig, self.position)
+        local_dir = dir
+
+        a = local_dir[0] ** 2 + local_dir[2] ** 2
+        b = 2 * (local_dir[0] * local_orig[0] + local_dir[2] * local_orig[2])
+        c = local_orig[0] ** 2 + local_orig[2] ** 2 - self.radius ** 2
+
+        discriminant = b ** 2 - 4 * a * c
+
+        if discriminant < 0:
+            return None
+        
+        t1 = (-b - math.sqrt(discriminant)) / (2 * a)
+        t2 = (-b + math.sqrt(discriminant)) / (2 * a)
+
+        y1 = local_orig[1] + t1 * local_dir[1]
+        y2 = local_orig[1] + t2 * local_dir[1]
+
+        bias = 0.01
+
+        if not ((-self.height / 2) - bias <= y1 <= (self.height / 2) + bias) and not ((-self.height / 2) - bias <= y2 <= (self.height / 2) + bias):
+            return None
+        
+        theta = math.atan2(local_orig[2], local_orig[0])
+        u = (theta + math.pi) / (2 * math.pi)  # Normalize theta to [0, 1]
+        v = (y1 + self.height / 2) / self.height  # Normalize y to [0, 1]
+
+        if not (0 <= u <= 1) or not (0 <= v <= 1):
+            return None
+        
+        t = min(t1, t2)
+        point = meth.additionVectors(orig, meth.multiplyValueAndVector(t, dir))
+
+        normal = meth.normalizeVector((point[0] - self.position[0], 0, point[2] - self.position[2]))
+
+        return Intercept(distance=t, 
+                         point=point, 
+                         normal=normal, 
+                         texcoords=(u,v), 
+                         obj=self)
+
