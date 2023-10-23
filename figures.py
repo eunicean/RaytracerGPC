@@ -1,6 +1,8 @@
 import meth
 import math
 
+
+
 class Intercept(object):
     def __init__(self, distance, point, normal, texcoords, obj):
         self.distance = distance
@@ -284,3 +286,44 @@ class Cylinder(Shape):
                          texcoords=(u,v), 
                          obj=self)
 
+class Oval(Shape):
+    def __init__(self, position, radii, material):
+        self.radii = radii
+        super().__init__(position, material)
+
+    def ray_intersect(self, orig, dir):
+        scaled_orig = meth.divideVectorValues(meth.substractionVectors(orig,self.position),self.radii)
+        scaled_dir = meth.divideVectorValues(dir,self.radii)
+
+        a = meth.dotProd(scaled_dir, scaled_dir)
+        b = 2.0 * meth.dotProd(scaled_dir, scaled_orig)
+        c = meth.dotProd(scaled_orig, scaled_orig) - 1.0
+
+        discriminant = b ** 2 - 4 * a * c
+
+        if discriminant < 0:
+            return None
+
+        t1 = (- b + math.sqrt(discriminant)) / (2 * a)
+        t2 = (- b - math.sqrt(discriminant)) / (2 * a)
+
+        if t1 < 0 and t2 <0:
+            return None
+
+        if t1 < t2:
+            t = t1
+        else:
+            t = t2
+
+        P = meth.additionVectors(orig, meth.multiplyValueAndVector(t, scaled_dir))
+
+        normal = meth.normalizeVector(meth.divideVectorValues(meth.substractionVectors(P, self.position), self.radii))
+        u = 1 - ((math.atan2(normal[2], normal[0]) + math.pi) / (2 * math.pi))
+        v = ((math.acos(normal[1]) + math.pi) / 2) / math.pi
+        
+        return Intercept(distance = t,
+                         point = P,
+                         normal = normal,
+                         texcoords= (u,v),
+                         obj = self)
+    

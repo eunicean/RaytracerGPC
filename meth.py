@@ -212,3 +212,10 @@ def fresnel(normal, incident,n1,n2):
     Kr = (F1+F2)/2
     Kt = 1- Kr
     return Kr, Kt
+
+def divideVectorValues(v1, v2):
+    if len(v1) != len(v2):
+        raise print("Diferent lenghts!")
+
+    r = [v1[i] / v2[i] for i in range(len(v1))]
+    return r
